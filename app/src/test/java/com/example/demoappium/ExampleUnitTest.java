@@ -18,8 +18,11 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -52,6 +55,8 @@ public class ExampleUnitTest {
     private static AndroidDriver driver;
     private static String mFolderName;
     private static String mCurrentFragment;
+    private static FileWriter mFileWriter;
+    private static HashMap<String, ArrayList<String>> mGraph;
 
     @BeforeClass
     public static void setUp() throws MalformedURLException {
@@ -86,12 +91,22 @@ public class ExampleUnitTest {
         driver = new AndroidDriver(new URL("http://127.0.0.1:4723/wd/hub"), capabilities);
         driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
 
-
+        mGraph = new HashMap<>();
 
         final String folderPath = "screenshots/" + mFolderName + "/";
         File folder = new File(folderPath);
         if (!folder.exists()) {
             folder.mkdirs();
+        }
+
+        File file = new File(folderPath + "flow.dot");
+
+        try {
+            mFileWriter = new FileWriter(file);
+            mFileWriter.write("digraph MeuDiagrama {");
+            mFileWriter.write(System.lineSeparator());
+        } catch (IOException e) {
+            System.out.println("Falha ao gerar arquivo");
         }
 
         didChangePage();
@@ -106,14 +121,14 @@ public class ExampleUnitTest {
         final int year = calendar.get(Calendar.YEAR);
         final String month = String.format("%02d", calendar.get(Calendar.MONTH) + 1);
         final String day = String.format("%02d", calendar.get(Calendar.DAY_OF_MONTH));
-        final int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        final int minute = calendar.get(Calendar.MINUTE);
-        final int second = calendar.get(Calendar.SECOND);
+        final String hour = String.format("%02d", calendar.get(Calendar.HOUR_OF_DAY));
+        final String minute = String.format("%02d", calendar.get(Calendar.MINUTE));
+        final String second = String.format("%02d", calendar.get(Calendar.SECOND));
 
         return year + month + day + hour + minute + second;
     }
 
-    public void captureScreenshot() {
+    public static void captureScreenshot() {
         final String fileName = getCurrentFragment();
 
         try {
@@ -131,18 +146,42 @@ public class ExampleUnitTest {
     }
 
     private void goToStep2() {
-        captureScreenshot();
         driver.findElementById("button_first").click();
-        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
         assertEquals(driver.findElement(By.id("textview_second")).getText(), "Segundo");
+        didChangePage();
     }
 
     private static void didChangePage() {
+        captureScreenshot();
+
+        final String nextFragment = getCurrentFragment();
+
         if (mCurrentFragment != null) {
-            
+            boolean alreadyPresent = false;
+
+            if (!mGraph.containsKey(mCurrentFragment)) {
+                ArrayList<String> joins = new ArrayList<>();
+                joins.add(nextFragment);
+                mGraph.put(mCurrentFragment, joins);
+            } else if (!mGraph.get(mCurrentFragment).contains(nextFragment)) {
+                mGraph.get(mCurrentFragment).add(nextFragment);
+            } else {
+                alreadyPresent = true;
+            }
+
+            if (!alreadyPresent) {
+                final String line = mCurrentFragment + "->" + nextFragment;
+                try {
+                    mFileWriter.write(line);
+                    mFileWriter.write(System.lineSeparator());
+                } catch (IOException e) {
+                    System.out.println("Falha ao escrever linha: " + line);
+                    e.printStackTrace();
+                }
+            }
         }
 
-        mCurrentFragment = getCurrentFragment();
+        mCurrentFragment = nextFragment;
     }
 
     @Test
@@ -153,23 +192,25 @@ public class ExampleUnitTest {
         captureScreenshot();
         driver.findElementById("button_second").click();
         assertEquals(driver.findElement(By.id("textview_third")).getText(), "Terceiro");
+        didChangePage();
 
         captureScreenshot();
         driver.findElementById("button_third").click();
         assertEquals(driver.findElement(By.id("textview_first")).getText(), "Primeiro");
+        didChangePage();
 
 //        WebDriverWait wait = new WebDriverWait(driver, 30);
 //        wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.id("DetailedFilterTitle"))).get(0).click();
     }
 
-//    @Test
+    @Test
     public void testErrorFlow() {
 
         goToStep2();
 
-        captureScreenshot();
         driver.findElementById("button_error").click();
         assertEquals(driver.findElement(By.id("textview_error")).getText(), "ERRO");
+        didChangePage();
 
         captureScreenshot();
     }
@@ -183,29 +224,16 @@ public class ExampleUnitTest {
         final String folderPath = "screenshots/" + mFolderName + "/";
 
         File file = new File(folderPath + "flow.dot");
-        FileWriter fr = null;
         try {
-            fr = new FileWriter(file);
-            fr.write("digraph MeuDiagrama {");
-            fr.write(System.lineSeparator());
-            fr.write("A->B");
-            fr.write(System.lineSeparator());
-            fr.write("B->C");
-            fr.write(System.lineSeparator());
-            fr.write("C->A");
-            fr.write(System.lineSeparator());
-            fr.write("B->E");
-            fr.write(System.lineSeparator());
-            fr.write("}");
-
+            mFileWriter.write("}");
         } catch (IOException e) {
-            System.out.println("Erro ao gerar arquivo");
+            System.out.println("Erro ao finalizar arquivo");
             e.printStackTrace();
 
             errorOcurred = true;
         } finally {
             try {
-                fr.close();
+                mFileWriter.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
