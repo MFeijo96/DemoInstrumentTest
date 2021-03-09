@@ -1,0 +1,6 @@
+digraph MeuDiagrama {
+A->B
+B->C
+C->A
+B->E
+}
