@@ -1,7 +1,0 @@
-digraph MeuDiagrama {
-FirstFragment->SecondFragment
-SecondFragment->ThirdFragment
-ThirdFragment->FirstFragment
-FirstFragment->SecondFragment
-SecondFragment->ErrorFragment
-}

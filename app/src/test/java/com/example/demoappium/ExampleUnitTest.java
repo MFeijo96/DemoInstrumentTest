@@ -2,6 +2,7 @@ package com.example.demoappium;
 
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.projection.MediaProjectionManager;
 import android.os.Environment;
 import android.text.format.DateFormat;
@@ -10,6 +11,7 @@ import android.view.View;
 
 import androidx.test.InstrumentationRegistry;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -23,6 +25,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -136,7 +139,22 @@ public class ExampleUnitTest {
 
             if (!new File(folderPath + fileName + ".png").exists()) {
                 FileOutputStream out = new FileOutputStream(folderPath + fileName + ".png");
-                out.write(((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES));
+                byte[] bitmapdata = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+
+                Bitmap bitmapImage = BitmapFactory.decodeByteArray(bitmapdata, 0, bitmapdata.length);
+                int nh = (int) ( bitmapImage.getHeight() * (512.0 / bitmapImage.getWidth()) );
+
+                Bitmap scaled = Bitmap.createScaledBitmap(bitmapImage, 512, nh, true);
+
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+                scaled.compress(Bitmap.CompressFormat.PNG, 100, stream);
+
+                byte[] bytes = stream.toByteArray();
+
+                scaled.recycle();
+
+                out.write(bytes);
                 out.close();
             }
         } catch (Exception e) {
@@ -157,27 +175,17 @@ public class ExampleUnitTest {
         final String nextFragment = getCurrentFragment();
 
         if (mCurrentFragment != null) {
-            boolean alreadyPresent = false;
-
             if (!mGraph.containsKey(mCurrentFragment)) {
                 ArrayList<String> joins = new ArrayList<>();
                 joins.add(nextFragment);
                 mGraph.put(mCurrentFragment, joins);
             } else if (!mGraph.get(mCurrentFragment).contains(nextFragment)) {
                 mGraph.get(mCurrentFragment).add(nextFragment);
-            } else {
-                alreadyPresent = true;
             }
 
-            if (!alreadyPresent) {
-                final String line = mCurrentFragment + "->" + nextFragment;
-                try {
-                    mFileWriter.write(line);
-                    mFileWriter.write(System.lineSeparator());
-                } catch (IOException e) {
-                    System.out.println("Falha ao escrever linha: " + line);
-                    e.printStackTrace();
-                }
+            if (!mGraph.containsKey(nextFragment)) {
+                ArrayList<String> joins = new ArrayList<>();
+                mGraph.put(mCurrentFragment, joins);
             }
         }
 
@@ -223,8 +231,23 @@ public class ExampleUnitTest {
 
         final String folderPath = "screenshots/" + mFolderName + "/";
 
+          
+
         File file = new File(folderPath + "flow.dot");
         try {
+            for (String fragment : mGraph.keySet()) {
+                mFileWriter.write("node[image=\"" + fragment + ".png\", label=\"\", fillcolor=black style=filled]");
+                mFileWriter.write(System.lineSeparator());
+            }
+
+            mFileWriter.write(System.lineSeparator());
+            for (Map.Entry<String, ArrayList<String>> entry : mGraph.entrySet()) {
+                for (String fragment: entry.getValue()) {
+                    mFileWriter.write(entry.getKey() + "->" + fragment);
+                    mFileWriter.write(System.lineSeparator());
+                }
+            }
+
             mFileWriter.write("}");
         } catch (IOException e) {
             System.out.println("Erro ao finalizar arquivo");
@@ -243,7 +266,7 @@ public class ExampleUnitTest {
         final String path = absolutePath.substring(0, absolutePath.lastIndexOf(File.separator));
         if (!errorOcurred) {
             try {
-                Runtime.getRuntime().exec("dot -Tpng -O " + path + "\\flow.dot");
+                Runtime.getRuntime().exec("dot -Tpng -O " + path + "\\flow.dot", null, new File(path));
             } catch (IOException e) {
                 System.out.println("Erro ao gerar grafo:" +  path);
                 e.printStackTrace();

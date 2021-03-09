@@ -1,0 +1,8 @@
+digraph MeuDiagrama {
+node[image="ThirdFragment.png", label=""]
+node[image="FirstFragment.png", label=""]
+node[image="SecondFragment.png", label=""]
+
+ThirdFragment->FirstFragment
+FirstFragment->SecondFragment
+}
