@@ -78,4 +78,6 @@ dependencies {
     testImplementation 'org.seleniumhq.selenium:selenium-api:3.141.59'
     testImplementation 'org.seleniumhq.selenium:selenium-java:3.141.59'
     testImplementation 'io.appium:java-client:7.4.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0-alpha04'
+    androidTestImplementation 'androidx.test:rules:1.4.0-alpha04'
 }

@@ -139,22 +139,7 @@ public class ExampleUnitTest {
 
             if (!new File(folderPath + fileName + ".png").exists()) {
                 FileOutputStream out = new FileOutputStream(folderPath + fileName + ".png");
-                byte[] bitmapdata = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
-
-                Bitmap bitmapImage = BitmapFactory.decodeByteArray(bitmapdata, 0, bitmapdata.length);
-                int nh = (int) ( bitmapImage.getHeight() * (512.0 / bitmapImage.getWidth()) );
-
-                Bitmap scaled = Bitmap.createScaledBitmap(bitmapImage, 512, nh, true);
-
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-
-                scaled.compress(Bitmap.CompressFormat.PNG, 100, stream);
-
-                byte[] bytes = stream.toByteArray();
-
-                scaled.recycle();
-
-                out.write(bytes);
+                out.write(((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES));
                 out.close();
             }
         } catch (Exception e) {
@@ -185,7 +170,7 @@ public class ExampleUnitTest {
 
             if (!mGraph.containsKey(nextFragment)) {
                 ArrayList<String> joins = new ArrayList<>();
-                mGraph.put(mCurrentFragment, joins);
+                mGraph.put(nextFragment, joins);
             }
         }
 
@@ -230,13 +215,10 @@ public class ExampleUnitTest {
         boolean errorOcurred = false;
 
         final String folderPath = "screenshots/" + mFolderName + "/";
-
-          
-
         File file = new File(folderPath + "flow.dot");
         try {
             for (String fragment : mGraph.keySet()) {
-                mFileWriter.write("node[image=\"" + fragment + ".png\", label=\"\", fillcolor=black style=filled]");
+                mFileWriter.write("node[image=\"" + fragment + ".png\", width=2, height=2, fixedsize=true, imagescale=true, label=\"\", fillcolor=black style=filled]; " + fragment + ";");
                 mFileWriter.write(System.lineSeparator());
             }
 

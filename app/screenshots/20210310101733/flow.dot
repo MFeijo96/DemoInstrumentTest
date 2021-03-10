@@ -1,0 +1,11 @@
+digraph MeuDiagrama {
+node[image="ThirdFragment.png", width=2, height=2, fixedsize=true, imagescale=true, label="", fillcolor=black style=filled]; ThirdFragment;
+node[image="FirstFragment.png", width=2, height=2, fixedsize=true, imagescale=true, label="", fillcolor=black style=filled]; FirstFragment;
+node[image="SecondFragment.png", width=2, height=2, fixedsize=true, imagescale=true, label="", fillcolor=black style=filled]; SecondFragment;
+node[image="ErrorFragment.png", width=2, height=2, fixedsize=true, imagescale=true, label="", fillcolor=black style=filled]; ErrorFragment;
+
+ThirdFragment->FirstFragment
+FirstFragment->SecondFragment
+SecondFragment->ThirdFragment
+SecondFragment->ErrorFragment
+}
