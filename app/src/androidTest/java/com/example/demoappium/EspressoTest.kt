@@ -16,6 +16,8 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,33 +26,45 @@ import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.IOException
 import java.util.*
+import kotlin.collections.HashMap
 
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class EspressoTest {
 
-    @get:Rule
-    val rule = ActivityScenarioRule<MainActivity>(Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java))
+    companion object {
+        private var mFolderPath: String? = null
+        private var mCurrentFragment: String? = null
+        private var mFileWriter: FileWriter? = null
+        private var mGraph: HashMap<String, ArrayList<String>>? = null
 
-    private var mFolderName: String? = null
-    private var mCurrentFragment: String? = null
-    private var mFileWriter: FileWriter? = null
-    private var mGraph: HashMap<String, ArrayList<String>>? = null
+        @BeforeClass
+        fun setup() {
+            mGraph = HashMap()
+        }
 
-    fun setup() {
-        mFolderName = getFolderName()
+        fun getFolderName(): String {
+            val calendar = Calendar.getInstance()
+            val year = calendar[Calendar.YEAR]
+            val month = String.format("%02d", calendar[Calendar.MONTH] + 1)
+            val day = String.format("%02d", calendar[Calendar.DAY_OF_MONTH])
+            val hour = String.format("%02d", calendar[Calendar.HOUR_OF_DAY])
+            val minute = String.format("%02d", calendar[Calendar.MINUTE])
+            val second = String.format("%02d", calendar[Calendar.SECOND])
 
-        mGraph = HashMap()
+            return year.toString() + month + day + hour + minute + second
+        }
 
-        rule.scenario.onActivity {
-            val folderPath = it.applicationContext.filesDir.absolutePath + "/screenshots/" + mFolderName + "/"
-            val folder = File(folderPath)
+        @AfterClass
+        fun finishTests() {
+
+            val folder = File(mFolderPath)
             if (!folder.exists()) {
                 folder.mkdirs()
             }
 
-            val file = File(folderPath + "flow.dot")
+            val file = File(mFolderPath + "flow.dot")
             try {
                 mFileWriter = FileWriter(file)
                 mFileWriter?.let {
@@ -60,20 +74,52 @@ class EspressoTest {
             } catch (e: IOException) {
                 println("Falha ao gerar arquivo")
             }
+
+            val fileWriter: FileWriter = mFileWriter!!
+            val graph: HashMap<String, ArrayList<String>> = mGraph!!
+
+            var errorOcurred = false
+
+            try {
+                for (fragment in graph.keys) {
+                    fileWriter.write("node[image=\"$fragment.png\", width=2, height=2, fixedsize=true, imagescale=true, label=\"\", fillcolor=black style=filled]; $fragment;")
+                    fileWriter.write(System.lineSeparator())
+                }
+                fileWriter.write(System.lineSeparator())
+                for ((key, value) in graph) {
+                    for (fragment in value) {
+                        fileWriter.write("$key->$fragment")
+                        fileWriter.write(System.lineSeparator())
+                    }
+                }
+                fileWriter.write("}")
+            } catch (e: IOException) {
+                println("Erro ao finalizar arquivo")
+                e.printStackTrace()
+                errorOcurred = true
+            } finally {
+                try {
+                    fileWriter.close()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
+
+            val absolutePath = file.absolutePath
+            val path = absolutePath.substring(0, absolutePath.lastIndexOf(File.separator))
+            if (!errorOcurred) {
+                try {
+                    Runtime.getRuntime().exec("dot -Tpng -O $path\\flow.dot", null, File(path))
+                } catch (e: IOException) {
+                    println("Erro ao gerar grafo:$path")
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
-    fun getFolderName(): String {
-        val calendar = Calendar.getInstance()
-        val year = calendar[Calendar.YEAR]
-        val month = String.format("%02d", calendar[Calendar.MONTH] + 1)
-        val day = String.format("%02d", calendar[Calendar.DAY_OF_MONTH])
-        val hour = String.format("%02d", calendar[Calendar.HOUR_OF_DAY])
-        val minute = String.format("%02d", calendar[Calendar.MINUTE])
-        val second = String.format("%02d", calendar[Calendar.SECOND])
-
-        return year.toString() + month + day + hour + minute + second
-    }
+    @get:Rule
+    val rule = ActivityScenarioRule<MainActivity>(Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java))
 
     private fun didChangePage() {
         val graph = mGraph!!
@@ -98,18 +144,26 @@ class EspressoTest {
     }
 
     private fun captureScreenshot() {
+        if (mFolderPath == null) {
+            getActivityInstance()?.let {
+                mFolderPath = it.applicationContext.filesDir.absolutePath + "/screenshots/" + getFolderName() + "/"
+            }
+        }
+
         val fileName = getCurrentFragment();
         val now = Date()
         DateFormat.format("yyyy-MM-dd_hh:mm:ss", now)
         try {
-
-            val folderPath = "screenshots/$mFolderName/"
-
             // image naming and path  to include sd card  appending name you choose for file
-            val mPath: String = "$folderPath/$fileName.png"
-
             // create bitmap screen capture
             getActivityInstance()?.let {
+                val folderPath = mFolderPath
+                val folder = File(folderPath)
+                if (!folder.exists()) {
+                    folder.mkdirs()
+                }
+
+                val mPath: String = "$folderPath/$fileName.png"
                 val v1 = it.window.decorView.rootView;
                 v1.setDrawingCacheEnabled(true)
                 val bitmap: Bitmap = Bitmap.createBitmap(v1.drawingCache)
@@ -187,49 +241,7 @@ class EspressoTest {
         didChangePage();
 
         onView(withId(R.id.textview_error)).check(matches(isDisplayed()));
-        
+
         finishTests()
-    }
-    
-    fun finishTests() {
-//        var errorOcurred = false
-//
-//        val folderPath = "screenshots/$mFolderName/"
-//        val file = File(folderPath + "flow.dot")
-//        try {
-//            for (fragment in mGraph.keys) {
-//                mFileWriter.write("node[image=\"$fragment.png\", width=2, height=2, fixedsize=true, imagescale=true, label=\"\", fillcolor=black style=filled]; $fragment;")
-//                mFileWriter.write(System.lineSeparator())
-//            }
-//            mFileWriter.write(System.lineSeparator())
-//            for ((key, value) in mGraph) {
-//                for (fragment in value) {
-//                    mFileWriter.write("$key->$fragment")
-//                    mFileWriter.write(System.lineSeparator())
-//                }
-//            }
-//            mFileWriter.write("}")
-//        } catch (e: IOException) {
-//            println("Erro ao finalizar arquivo")
-//            e.printStackTrace()
-//            errorOcurred = true
-//        } finally {
-//            try {
-//                mFileWriter.close()
-//            } catch (e: IOException) {
-//                e.printStackTrace()
-//            }
-//        }
-//
-//        val absolutePath = file.absolutePath
-//        val path = absolutePath.substring(0, absolutePath.lastIndexOf(File.separator))
-//        if (!errorOcurred) {
-//            try {
-//                Runtime.getRuntime().exec("dot -Tpng -O $path\\flow.dot", null, File(path))
-//            } catch (e: IOException) {
-//                println("Erro ao gerar grafo:$path")
-//                e.printStackTrace()
-//            }
-//        }
     }
 }
