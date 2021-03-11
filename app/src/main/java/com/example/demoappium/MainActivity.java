@@ -4,18 +4,28 @@ import android.content.Context;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
 
 public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+//        setContentView(R.layout.activity_main);
+//        Toolbar toolbar = findViewById(R.id.toolbar);
+//        setSupportActionBar(toolbar);
+
+        FrameLayout view = new FrameLayout(this);
+        view.setId(android.R.id.content);
+        setContentView(view);
+
+        FragmentManager manager = getSupportFragmentManager();
+        FirstFragment fragment = new FirstFragment();
+        manager.beginTransaction().add(android.R.id.content, fragment).addToBackStack(fragment.getClass().getName()).commit();
     }
 
     @Override
