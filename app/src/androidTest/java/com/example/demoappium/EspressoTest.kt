@@ -34,6 +34,8 @@ import kotlin.collections.HashMap
 class EspressoTest {
 
     companion object {
+        private var IMAGE_HEIGHT_OUT = 480;
+        private var IMAGE_WIDTH_OUT = 170;
         private var mFolderPath: String? = null
         private var mCurrentFragment: String? = null
         private var mFileWriter: FileWriter? = null
@@ -82,7 +84,7 @@ class EspressoTest {
 
             try {
                 for (fragment in graph.keys) {
-                    fileWriter.write("node[image=\"$fragment.png\", width=2, height=2, fixedsize=true, imagescale=true, label=\"\", fillcolor=black style=filled]; $fragment;")
+                    fileWriter.write("node[image=\"$fragment.png\", label=\"\", fillcolor=black style=filled]; $fragment;")
                     fileWriter.write(System.lineSeparator())
                 }
                 fileWriter.write(System.lineSeparator())
@@ -163,11 +165,12 @@ class EspressoTest {
                     folder.mkdirs()
                 }
 
-                val mPath: String = "$folderPath/$fileName.png"
+                val mPath = "$folderPath/$fileName.png"
                 val v1 = it.window.decorView.rootView;
                 v1.setDrawingCacheEnabled(true)
-                val bitmap: Bitmap = Bitmap.createBitmap(v1.drawingCache)
+                var bitmap: Bitmap = Bitmap.createBitmap(v1.drawingCache)
                 v1.setDrawingCacheEnabled(false)
+                bitmap = Bitmap.createScaledBitmap(bitmap, IMAGE_WIDTH_OUT, IMAGE_HEIGHT_OUT, true)
                 val imageFile = File(mPath)
                 val outputStream = FileOutputStream(imageFile)
                 val quality = 100

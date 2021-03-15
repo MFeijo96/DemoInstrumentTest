@@ -11,11 +11,11 @@ print('\nInitializing tests')
 sys.stdout.flush()
 os.system('adb shell am instrument -w com.example.demoappium.test/androidx.test.runner.AndroidJUnitRunner')
 
-process = input("Continue with graph generation? [S/N]")
+process = input("Continue with graph generation? [S/N] ") 
 
 
-while process != 'S' and process != 'S' and 'N' and process != 's' and process != 'n':
-	process = input("Continue with graph generation? [S/N]")
+while process != 'S' and process != 'N' and process != 's' and process != 'n':
+	process = input("Continue with graph generation? [S/N] ")
 
 if (process == 'S' or process == 's'):
 	result = subprocess.check_output("adb shell ls sdcard/DemoAppium/screenshots/", shell=True, text=True)
