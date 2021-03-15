@@ -146,7 +146,7 @@ class EspressoTest {
     private fun captureScreenshot() {
         if (mFolderPath == null) {
             getActivityInstance()?.let {
-                mFolderPath = it.applicationContext.filesDir.absolutePath + "/screenshots/" + getFolderName() + "/"
+                mFolderPath = "/sdcard/DemoAppium/screenshots/" + getFolderName() + "/"
             }
         }
 
@@ -171,7 +171,7 @@ class EspressoTest {
                 val imageFile = File(mPath)
                 val outputStream = FileOutputStream(imageFile)
                 val quality = 100
-                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+                bitmap.compress(Bitmap.CompressFormat.PNG, quality, outputStream)
                 outputStream.flush()
                 outputStream.close()
             }
@@ -201,7 +201,7 @@ class EspressoTest {
 
         var activityInstance = getActivityInstance()
         activityInstance?.let {
-            fragmentName = it.supportFragmentManager.getBackStackEntryAt(it.supportFragmentManager.backStackEntryCount - 1).name
+            fragmentName = it.supportFragmentManager.getBackStackEntryAt(it.supportFragmentManager.backStackEntryCount - 1).name?.replace('.', '_')
         };
 
         return fragmentName;
